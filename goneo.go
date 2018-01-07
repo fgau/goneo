@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	NETBOOK_BRIGHTNESS_FILE = "/sys/class/backlight/intel_backlight/brightness"
-	SUSPEND_FILE            = "/sys/power/state"
+	NETBOOK_BRIGHTNESS_FILE     = "/sys/class/backlight/intel_backlight/brightness"
+	NETBOOK_MAX_BRIGHTNESS_FILE = "/sys/class/backlight/intel_backlight/max_brightness"
+	SUSPEND_FILE                = "/sys/power/state"
 )
 
 type foo string
@@ -27,7 +28,21 @@ func (f foo) FooPlus(what string) (string, *dbus.Error) {
 	return r, nil
 }
 
-func (f foo) GetBrightness() (string, float64, *dbus.Error) {
+func GetMaxBrightness() float64 {
+	contents, err := ioutil.ReadFile(NETBOOK_MAX_BRIGHTNESS_FILE)
+	if err != nil {
+		panic(err)
+	}
+
+	max_brightness, err := strconv.ParseFloat(strings.TrimSpace(string(contents)), 64)
+	if err != nil {
+		panic(err)
+	}
+
+	return float64(max_brightness)
+}
+
+func (f foo) GetBrightness() (string, int, *dbus.Error) {
 	fmt.Println(f)
 
 	contents, err := ioutil.ReadFile(NETBOOK_BRIGHTNESS_FILE)
@@ -40,9 +55,9 @@ func (f foo) GetBrightness() (string, float64, *dbus.Error) {
 		panic(err)
 	}
 
-	fmt.Println(brightness)
+	fmt.Println(brightness, GetMaxBrightness())
 
-	return string(f), float64(brightness), nil
+	return string(f), int(brightness * 100.0 / GetMaxBrightness()), nil
 }
 
 func main() {
